@@ -1,0 +1,21 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+services:
+  db:
+    image: postgis/postgis
+    restart: always
+    environment:
+      POSTGRES_USER: saucisse
+      POSTGRES_PASSWORD: saucisse
+      POSTGRES_DB: esp
+    ports:
+      - 5432:5432
+    volumes:
+      - ./db:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
