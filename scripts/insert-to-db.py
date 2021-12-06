@@ -1,7 +1,6 @@
 import sys
 import os
 import psycopg2
-import psycopg2.extras
 import pandas as pd
 
 
@@ -16,7 +15,9 @@ USEFUL_COLUMNS = [
     'EquipementTypeCode',
     'EquipementTypeLib',
     'EquipementFamille',
-    'EquipementCateg'
+    'EquipementCateg',
+    'EquGPSX',
+    'EquGPSY',
 ]
 
 TABLE_COLUMNS = (
@@ -72,13 +73,32 @@ def get_data_frame_from_file(file_path):
 
 def row_to_tuple(row):
     value_list = [row[col] for col in USEFUL_COLUMNS]
-    value_list.append(f"POINT({row['EquGPSX']}, {row['EquGPSY']}")
     return tuple(value_list)
 
 def insert_df_into_db(cursor, df):
-    query = "INSERT INTO test " + str(TABLE_COLUMNS) + "VALUES %s"
-    values = [row_to_tuple(row) for _, row in df.iterrows()]
-    psycopg2.extras.execute_values(cursor, query, values)
+    query = """
+        INSERT INTO test (
+            "department_code",
+            "department_name",
+            "city_name",
+            "location_name",
+            "location_id",
+            "equipment_id",
+            "equipment_name",
+            "equipment_type_id",
+            "equipment_type_name",
+            "equipment_family",
+            "equipment_category",
+            "gps_location"
+        )
+        VALUES
+    """
+    values_list = [row_to_tuple(row) for _, row in df.iterrows()]
+    args_str = ','.join(cursor.mogrify(
+        "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326))",
+        values
+    ).decode("utf-8") for values in values_list)
+    cursor.execute(query + args_str)
 
 def main(file_path):
     connection = None
@@ -86,6 +106,7 @@ def main(file_path):
         connection = connect_to_db()
         cursor = connection.cursor()
         create_table(cursor)
+        connection.commit()
         df = get_data_frame_from_file(file_path)
         insert_df_into_db(cursor, df)
         connection.commit()
