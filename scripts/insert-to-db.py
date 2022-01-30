@@ -36,7 +36,7 @@ TABLE_COLUMNS = (
 )
 
 def usage():
-    print('lol')
+    print('python insert-to-db.py [path/to/file].xlsx')
 
 def connect_to_db():
     return psycopg2.connect(
